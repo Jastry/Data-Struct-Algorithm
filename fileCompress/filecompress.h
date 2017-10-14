@@ -58,7 +58,7 @@ const int CHARNUM = 256;
 class FileCompress{
 private:
 	struct ConfigInfo{
-		char ch;
+		unsigned char ch;
 		long long count;
 	};
 public:
@@ -76,18 +76,16 @@ public:
 		size_t pos = filePath.find(".");
 		std::string compress_file_name = filePath.substr(0, pos);
 		compress_file_name += ".hzp";
-		FILE* fin = fopen(compress_file_name.c_str(), "wb+");
+		FILE* fin = fopen(compress_file_name.c_str(), "wb");
 		assert(fin);
 
 		for (int i = 0; i < CHARNUM; ++i){
 			_fileinfo[i]._ch = i;
 		}
 
-		char readbuf[1024] = { 0 };
-		unsigned char value = 0;
 
 		char ch = fgetc(fop);
-		while (ch != EOF)
+		while (!feof(fop))
 		{
 			_fileinfo[(unsigned char)ch]._appearence_number++;
 			ch = fgetc(fop);
@@ -100,20 +98,19 @@ public:
 		/*Use the number of characters appear to build Huffman coding */
 		Conversion(huffmanTreeRoot);
 
-		/*´´½¨Ñ¹ËõÎÄ¼þÐ´Èë½âÑ¹ÐÅÏ¢*/
+		/*åˆ›å»ºåŽ‹ç¼©æ–‡ä»¶å†™å…¥è§£åŽ‹ä¿¡æ¯*/
 		ConfigurationFileInformation(fin);
 
 		/*write hufuman code to compress file*/
-		/*½«Ô­ÎÄ¼þÖÐ×Ö·ûÒÔhuffmancodeµÄÐÎÊ½Ð´ÈëÑ¹ËõÎÄ¼þ*/
+		/*å°†åŽŸæ–‡ä»¶ä¸­å­—ç¬¦ä»¥huffmancodeçš„å½¢å¼å†™å…¥åŽ‹ç¼©æ–‡ä»¶*/
 		CompressToFile(fop, fin);
 
-		/*¹Ø±ÕÔ´ÎÄ¼þÒÔ¼°Ñ¹ËõÎÄ¼þ*/
+		/*å…³é—­æºæ–‡ä»¶ä»¥åŠåŽ‹ç¼©æ–‡ä»¶*/
 		fclose(fop);
 		fclose(fin);
 	}
 	
 	void unCompress(std::string& filename){
-		/*Ç§ÍòÒªÒÔ¶þ½øÖÆ¶Á´ò¿ª °¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡£¡£¡£¡*/
 		FILE* fop = fopen(filename.c_str(), "rb");
 		assert(fop);
 		int p = filename.find(".");
@@ -124,7 +121,6 @@ public:
 		}
 		std::string newfile = filename.substr(0, p);
 		newfile += "1.txt";
-		/*Ç§ÍòÒªÒÔ¶þ½øÖÆÐ´´ò¿ª°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡°¡£¡*/
 		FILE* fwt = fopen(newfile.c_str(), "wb");
 		assert(fwt);
 
@@ -200,37 +196,24 @@ protected:
 	}
 
 	void CompressToFile(FILE* fop, FILE* fin){
+		
 		/*Put the file pointer in the starting position */
 		if (fseek(fop, 0, SEEK_SET) != 0){
 			perror("fseek");
 			exit(2);
 		}
 
-		/*The buffer to be written to the compressed file */
-		char write_buf[1024] = { 0 };
-
-		/*Read the buffer stored by the characters from the original file */
-		char read_buf[1024] = { 0 };
-
 		/*The characters currently read */
-		unsigned char current_value = 0;
-		unsigned char value = 0;
-		for (;;){
+		char current_value = 0;
+		int pos = 0;
+		char ch = 0;
+		while (!feof(fop)){
 			/*memset(write_buf, 0, sizeof (write_buf));*/
-
-			int red_size = fread(read_buf, sizeof (char), 1024, fop);
-			int wrt_size = 0;
-
-			/*there is end of file*/
-			if (0 == red_size)
-				break;
-			int pos = 0;
+			ch = fgetc(fop);
 			int n = 0;
 			std::string current_huffmancode;
-			for (int i = 0; i < red_size; ++i){
 				//current huffman char code
-				value = read_buf[i];
-				current_huffmancode = _fileinfo[value]._huffman_code;
+			current_huffmancode = _fileinfo[(unsigned char)ch]._huffman_code;
 				//current huffman char size
 				size_t current_char_size = current_huffmancode.size();
 				
@@ -251,12 +234,10 @@ protected:
 				current_value <<= 8 - pos;
 				fputc(current_value, fin);
 			}
-		}
 	}
 
 	void ConfigurationFileInformation(FILE* fin){
 
-		char buf[256];
 		ConfigInfo info;
 		for (int i = 0; i < 256; ++i){
 			if (_fileinfo[i]._appearence_number != 0){
@@ -313,10 +294,10 @@ void testfile(){
 }
 
 void Testfile(){
-	std::string filename("log.txt");
+	std::string filename("123.mp4");
 
 	FileCompress f(filename);
 
-	std::string ufilename("log.hzp");
+	std::string ufilename("123.hzp");
 	f.unCompress(ufilename);
 }
