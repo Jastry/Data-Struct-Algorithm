@@ -1,5 +1,102 @@
 #include "httpd.h"
 
+const char* msg = "HTTP/1.0 200 OK\r\n\r\n\r\n";
+const char* path = "wwwroot/index.html";
+void add_fd(int efds, int sockfd)
+{
+	struct epoll_event ev;
+	ev.data.fd = sockfd;
+	ev.events = EPOLLOUT | EPOLLIN | EPOLLET;
+
+	if ( -1 == epoll_ctl(efds, EPOLL_CTL_ADD, sockfd, &ev) ){
+		perror("epoll_ctl : add");
+		close(sockfd);
+	}
+	setnoblocking(sockfd);
+}
+
+int setnoblocking(int fd)
+{
+	int old_option = fcntl(fd, F_GETFL);
+	int new_option = old_option | O_NONBLOCK;
+	fcntl(fd, F_SETFL, new_option);
+	return old_option;
+}
+
+void del_fd( int efds, int sockfd )
+{
+	if ( -1 == epoll_ctl( efds, EPOLL_CTL_DEL, sockfd, NULL) ){
+		perror( "epoll_ctl" );
+	}
+	close(sockfd);
+}
+void et( struct epoll_event* revs, int nums, int efds, int listenfd ) 
+{
+	char buff[BUFF_SIZE];
+	bzero(buff, sizeof (buff));
+	for ( int i = 0; i < nums; ++i ) {
+		int sockfd = revs[i].data.fd;
+		if ( sockfd == listenfd ) {
+			struct sockaddr_in client;
+			socklen_t len = sizeof (client);
+			int connfd = accept( sockfd, (struct sockaddr*)& client, &len );
+			if ( connfd < 0 ){
+				perror( "accept" );
+			}
+			add_fd( efds, connfd );
+			printf( "get a new client, client ip : %s, client port : %d\n",\
+				inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+
+		} else if ( revs[i].events & EPOLLIN ) {
+			for (;;){
+				int ret = recv(sockfd, buff, sizeof (buff - 1), 0);
+				if (ret < 0){
+					if (errno == EAGAIN || errno == EWOULDBLOCK){
+						printf("read later");
+						break;
+					}
+					close(sockfd);
+					break;
+				} else if (ret == 0){
+					printf("client quit\n");
+					close(sockfd);
+				} else {
+					char line[BUFF_SIZE];
+					/* HEAD REQUEST */
+					printf("%s", buff);
+					ctl_fd(efds, sockfd);
+				}
+			}
+		} else if ( revs[i].events & EPOLLOUT) {	
+			char status[BUFF_SIZE];
+			send(sockfd, msg, strlen(msg), 0);
+			
+			int fd = open(path, O_RDONLY);
+			if (fd < 0){ 
+				perror("open");
+			}
+			struct stat stat_buf;
+			fstat(fd, &stat_buf);
+			
+			sendfile(sockfd, fd, NULL, stat_buf.st_size);
+
+			close(fd);
+			del_fd(efds, sockfd);
+			//get_line()
+		}
+	}
+}
+
+static void ctl_fd(int efds, int sockfd)
+{
+	struct epoll_event ev;
+	ev.data.fd = sockfd;
+	ev.events = EPOLLOUT | EPOLLET;
+
+	if ( -1 == epoll_ctl(efds, EPOLL_CTL_MOD, sockfd, &ev)){
+		perror("epoll_ctl : ctl_fd");
+	}
+}
 void printf_log(const char* msg, enum MSG agent)
 {
 	const char* const level[] = {

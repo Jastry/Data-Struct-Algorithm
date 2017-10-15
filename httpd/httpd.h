@@ -33,6 +33,12 @@ enum MSG{
 	FATAL
 };
 
+
+void add_fd(int efds, int sockfd);
+void et( struct epoll_event* revs, int nums, int efds, int listenfd );
+int setnoblocking(int fd);
+void del_fd( int efds, int sockfd );
+static void ctl_fd(int efds, int sockfd);
 static void echo_www(int fd, const char* path, ssize_t size);
 void usage(const char* proc);
 void* header_request(void* arg);
