@@ -1,6 +1,6 @@
 #include "httpd.h"
 
-
+#if 1
 int main(int argc, char** argv)
 {
 	if (argc <= 2){
@@ -17,6 +17,8 @@ int main(int argc, char** argv)
 			perror("accept");
 			close(connfd);
 		}
+		
+		printf("get a client ip : %s, port is %d\n",inet_ntoa( client.sin_addr), ntohs(client.sin_port));
 
 		pthread_t tid;
 		pthread_create(&tid, NULL, header_request, (void*) connfd);
@@ -25,3 +27,9 @@ int main(int argc, char** argv)
 	close(listenfd);
 	return 0;
 }
+
+#endif
+
+#if 0
+
+#endif

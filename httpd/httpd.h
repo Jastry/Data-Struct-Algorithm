@@ -17,6 +17,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
+#include <ctype.h>
+#include <sys/stat.h>
+#include <sys/sendfile.h>
 
 
 #define MAX_EVENT_NUMBER 1024
@@ -30,8 +33,10 @@ enum MSG{
 	FATAL
 };
 
+static void echo_www(int fd, const char* path, ssize_t size);
 void usage(const char* proc);
 void* header_request(void* arg);
 int startup(const char* ip, int port);
 void printf_log(const char* msg, enum MSG agent);
+void* request(void* arg);
 #endif //__HTTP_H__
