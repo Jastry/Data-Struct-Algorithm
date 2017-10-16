@@ -347,7 +347,11 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 	}else if (id == 0){//child
 		close(input[1]);
 		close(output[0]);
+		/* 程序替换后子进程通过往 fd 0 给父进程发送消息，从 fd 1 读取父进程发送过来的消息 */
 
+		dup2(input[0], 0);
+		dup2(output[1],1);
+		
 		if ( !strcasecmp( "get", method) ){
 			if (!query_string){
 				//echo_errno
@@ -389,11 +393,16 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 			}
 		}
 
+		char tmp[1024];
+		int i = 0;
 		while ( read(output[0], &c, 1) ){	/* 读子进程执行完后写入管道中的数据 */
 			send(sockfd, &c, 1, 0);
+			tmp[i++] = c;
 		}
+		tmp[i] = 0;
+		printf("father send to client : %s\n", tmp);
 		printf_log(sockfd, "HTTP/1.0 400 notfound_11\r\n\r\n\r\n");
-		
+	
 		waitpid(id, NULL, 0);
 		close(input[1]);
 		close(output[0]);
