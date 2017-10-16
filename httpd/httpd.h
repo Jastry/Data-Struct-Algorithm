@@ -20,10 +20,10 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <sys/sendfile.h>
-
+#include <sys/wait.h>
 
 #define MAX_EVENT_NUMBER 1024
-#define BACKLOG 10
+#define BACKLOG 2 
 #define BUFF_SIZE 1024
 enum MSG{
 	SUCCESS,
@@ -34,6 +34,7 @@ enum MSG{
 };
 
 
+static void  exec_cgi(int sockfd, const char* method, const char* query_string, const char* path);
 void add_fd(int efds, int sockfd);
 void et( struct epoll_event* revs, int nums, int efds, int listenfd );
 int setnoblocking(int fd);
@@ -43,6 +44,6 @@ static void echo_www(int fd, const char* path, ssize_t size);
 void usage(const char* proc);
 void* header_request(void* arg);
 int startup(const char* ip, int port);
-void printf_log(const char* msg, enum MSG agent);
+void printf_log(int sock, const char* msg);
 void* request(void* arg);
 #endif //__HTTP_H__

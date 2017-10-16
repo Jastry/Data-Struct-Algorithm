@@ -1,6 +1,6 @@
 #include "httpd.h"
 
-#if 0
+#if 1
 int main(int argc, char** argv)
 {
 	if (argc <= 2){
@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 
 #endif
 
-#if 1
+#if 0
 int main(int argc, char** argv)
 {
 	if (argc <= 2){
