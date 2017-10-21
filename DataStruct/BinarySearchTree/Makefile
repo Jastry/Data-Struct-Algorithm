@@ -1,6 +1,6 @@
 test:test.cpp
-	g++ -o $@ $^
+	@g++ -o $@ $^
 .PHONY:clean
 
 clean:
-	rm -f test
+	@rm -f test
