@@ -3,11 +3,13 @@
 
 #include <iostream>
 #include <stack>
+#include <utility>
 
 enum COLOUR{
 	RED,
 	BLACK
 };
+
 template <class K, class V>
 struct RBTreeNode{
 	const K _key;
@@ -32,7 +34,14 @@ public:
 	{
 		_rb_tree_delete(_root);
 	}
-public:
+	RBTree(const K* keys, const V* values, size_t nums)
+	{
+		assert(values);
+		assert(keys);
+		for (int i = 0; i < nums; ++i){
+			insert(keys[i], values[i]);
+		}	
+	}
 	bool insert(const K& key, const V& value)
 	{
 		if (!_root){
@@ -87,16 +96,17 @@ public:
 					/* uncle 不存在 */
 					if (cur = parent->_right){
 						_rb_tree_rotate_left(parent);
-						swap(parent, cur);
+						/* 交换 parent 与 cur */
+						_swap(parent, cur);
 					}
-					_rb_tree_ratate_right();
+					_rb_tree_rotate_right(grandfather);
 					parent->_col = RED;
 					grandfather->_col = BLACK;
 				}
 			}
 			else {
 				Node* uncle = grandfather->_left;
-				if (uncld && uncle->_col == RED){
+				if (uncle && uncle->_col == RED){
 					parent->_col = uncle->_col = BLACK;
 					grandfather->_col = RED;
 					cur = grandfather;
@@ -106,7 +116,7 @@ public:
 				{
 					if (cur == parent->_left){
 						_rb_tree_rotate_right(parent);
-						swap(parent, cur);
+						_swap(parent, cur);
 					}
 					_rb_tree_rotate_left(grandfather);
 					parent->_col = BLACK;
@@ -114,8 +124,16 @@ public:
 				}
 			}
 		}
-		_root->_col = BlACK;
+		_root->_col = BLACK;
 		return true;
+	}
+	void prevOder()
+	{
+		_rb_tree_prev_oder(_root);
+	}
+	void postOder()
+	{
+		_rb_tree_post_oder(_root);
 	}
 	bool is_rb_tree(){
 		if (!_root)
@@ -127,9 +145,15 @@ public:
 				++k;
 			cur = cur->_left;
 		}
-		return _is_rb_tree(_root, 1, k);
+		return _is_rb_tree(_root, 0, k);
 	}
 private:
+	void _swap(Node*& left, Node*& right)
+	{
+		Node* tmp = left;
+		left = right;
+		right = tmp;
+	}
 	void _rb_tree_delete(Node* node)
 	{
 		if (!node)	
@@ -138,15 +162,96 @@ private:
 		_rb_tree_delete(node->_right);
 		delete node;
 	}
-	void _rb_tree_rotate_left(Node* node)
-	{}
-	void _rb_tree_rotate_right(Node* node)
-	{}
+	void _rb_tree_rotate_left(Node* parent)
+	{
+		Node* subR = parent->_right;
+		Node* subRL = subR->_left;
+		Node* grandfather = parent->_parent;
+		subR->_left = parent;
+		parent->_parent = subR;
+		if (!grandfather){
+			_root = subR;
+			subR->_parent = NULL;
+		}
+		else if (grandfather->_right = parent)
+			grandfather->_right = subR;
+		else
+			grandfather->_left = subR;
+		parent->_right = subRL;
+		if (subRL){
+			subRL->_parent = parent;
+		}
+
+	}
+	void _rb_tree_rotate_right(Node* parent)
+	{
+		Node* subL = parent->_left;
+		Node* subLR = subL->_right;
+		Node* grandfather = parent->_parent;
+		subL->_right = parent;
+		parent->_parent = subL;
+		if (!grandfather){
+			_root = subL;
+			subL->_parent = NULL;
+		}
+		else if (grandfather->_right == parent)
+			grandfather->_right = subL;
+		else
+			grandfather->_left = subL;
+		grandfather->_right = subLR;
+		if (subLR){
+			subLR->_parent = parent;
+		}
+	}
+	void _rb_tree_post_oder(Node* node)
+	{
+		if (!node)
+			return;
+		Node* cur = node;
+		std::stack<Node*> s;
+		Node* prev = NULL;
+		while (cur || !s.empty()){
+			while (cur){
+				s.push(cur);
+				cur = cur->_left;
+			}
+			Node* front = s.top();
+			if (!front->_right || front->_right == prev){
+				std::cout << front->_key << " ";
+				s.pop();
+				prev = front;
+			}
+			else {
+				cur = front->_right;
+			}
+		}
+		std::cout << std::endl;
+	}
+	void _rb_tree_prev_oder(Node* node){
+		if (!node)
+			return;
+		Node* cur = node;
+		std::stack<Node*> s;
+		while (cur || !s.empty()){
+			while (cur){
+				s.push(cur);
+				cur = cur->_left;
+			}
+			Node* front = s.top();
+			s.pop();
+			std::cout << front->_key << " ";
+			cur = front->_right;
+		}
+		std::cout << std::endl;
+	}
 	bool _is_rb_tree(Node* node, int black_node_number, int k)
 	{
 		if (!node){
-			if (k == black_node_number)
+			if (k == black_node_number){
 				return true;
+			}
+			std::cout << "black_node_number is " << black_node_number << std::endl;
+			std::cout << "k is " << k << std::endl;
 			return false;
 		}
 		if (node->_col == RED && node->_parent && node->_parent->_col == RED){
