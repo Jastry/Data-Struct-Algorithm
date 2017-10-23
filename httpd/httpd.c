@@ -348,7 +348,7 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 		close(input[1]);
 		close(output[0]);
 		/* 程序替换后子进程通过往 fd 0 给父进程发送消息，从 fd 1 读取父进程发送过来的消息 */
-
+		
 		dup2(input[0], 0);
 		dup2(output[1],1);
 		
@@ -359,7 +359,7 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 				printf_log(sockfd, "HTTP/1.0 400 notfound_9\r\n\r\n\r\n");
 				return;
 			}
-			printf("query_string is %s\n", query_string);
+			//printf("query_string is %s\n", query_string);
 			sprintf(query_string_env, "QUERY_STRING_ENV=%s", query_string);
 			putenv(query_string_env);
 
@@ -384,7 +384,9 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 		//father
 		close(input[0]);
 		close(output[1]);
-
+		/* 响应服务器 */	
+		const char* msg = "HTTP/1.0 200 OK\r\n\r\n\r\n";
+		send(sockfd, msg, strlen(msg), 0);
 		char c = '\0';
 		int ret = -1;
 		if ( !strcasecmp("POST", method)){	/*POST 方法，将表单信息发给孩子进程 */
@@ -400,8 +402,8 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 			tmp[i++] = c;
 		}
 		tmp[i] = 0;
-		printf("father send to client : %s\n", tmp);
-		printf_log(sockfd, "HTTP/1.0 400 notfound_11\r\n\r\n\r\n");
+		//printf("father send to client : %s\n", tmp);
+		//printf_log(sockfd, "HTTP/1.0 400 notfound_11\r\n\r\n\r\n");
 	
 		waitpid(id, NULL, 0);
 		close(input[1]);
