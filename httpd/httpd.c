@@ -200,31 +200,31 @@ void* header_request(void* arg)
 
 	//printf ("%s\n", line);
 	int i = 0;
-	while (!isspace( line[i] ) && i < size){ /*提取方法 GET or POST or ...*/
+	while (!isspace( line[i] ) && i < size){
+		// get method 
 		method[i] = line[i];
 		i++;
 	}
 	method[i] = 0;
 
-	while (isspace(line[i])) /* 筛除方法和路径之间的空格 */
+	while (isspace(line[i])) // clear space 
 		i++;
 	
 	int j = 0;
-	while (!isspace(line[i])){	/*提取url*/
+	while (!isspace(line[i])){	
+		// get url 
 		url[j] = line[i];
 		j++; i++;
 	}
 	url[j] = 0;
 
-	//printf("method is %s, url is %s\n",method, url);
-	
 	char* query_string = NULL;
-	if ( strcasecmp("GET", method) == 0 ) {	
+	//get
+	if ( strcasecmp("GET", method) == 0 ) {	//get query string
 		for (i = 0; i < j; ++i){
 			if (url[i] == '?'){	/*GET 请求，参数与路径用 '?' 号隔开 */
 				url[i] = 0;
 				query_string = &url[++i];
-				//printf("query string is %s\n", query_string);
 				break;
 			}
 		}
@@ -232,31 +232,26 @@ void* header_request(void* arg)
 		if (path[strlen(path - 1)] == '/'){
 			strcat(path, "index.html");
 		}else 
-			printf("237: path is %s\n", path);
+			printf("this is 237 : path is %s\n", path);
 	}else {	
-		for (i = 0; i < j; ++i){
-			if (url[i] == '?'){	/*GET 请求，参数与路径用 '?' 号隔开 */
-				url[i] = 0;
-				query_string = &url[++i];
-				//printf("query string is %s\n", query_string);
-				break;
-			}
-		}
+		//post 
+		sprintf(path,"%s", url+1);
 	}
-	if (query_string)	/* 有参数，用cgi */
+
+	if (query_string)
 		cgi = 1;
-	/* 得到 path, 得到 query_string*/
+	
 	struct stat st;
 	if (-1 == stat(path, &st)){
 		//404
-
-		printf_log( connfd, "HTTP/1.0 400 notfound_2\r\n\r\n\r\n");
+		printf_log( connfd, "HTTP/1.0 400 notfounds_2\r\n\r\n\r\n");
+		printf("path is %s",path);
 		return (void*) 3;
 	}
 	if ( S_ISDIR(st.st_mode) ) {	/* 该文件是目录，返回静态网页 */
 		strcat(path, "/index.html");
-		//printf("%s\n", path);
 	}else if (st.st_mode & S_IXUSR ||st.st_mode & S_IXGRP ||st.st_mode & S_IXOTH){
+		printf("path is %s\n", path);
 		cgi = 1;
 	} else {}	/*other file type*/
 
@@ -272,7 +267,10 @@ end:
 
 static void echo_www(int sock, const char* path, ssize_t size)
 {
-	const char* msg = "HTTP/1.0 200 OK\r\n\r\n\r\n";
+	const char* msg = "HTTP/1.0 200 OK\r\n";
+
+	const char* type = "Content-Type: text/html;charset=ISO-8859-1\r\n\r\n";	
+	
 	int fd = open(path, O_RDONLY);
 	if (fd < 0){
 		perror("open");
@@ -283,13 +281,13 @@ static void echo_www(int sock, const char* path, ssize_t size)
 
 	char status[20];
 
-	if (-1 == send(sock, msg, strlen(msg), 0)){
+	if (-1 == send(sock, msg, strlen(msg), 0) || -1 == send(sock, type, strlen(type), 0)){
 		perror("send");
 		printf_log(sock, "HTTP/1.0 400 notfound_4\r\n\r\n\r\n");
 		return;
 	}
 
-	if (-1 == sendfile(sock, fd, NULL, size)){
+	if (-1 == sendfile(sock, fd, NULL, size) ){
 		perror("sendfile");
 		printf_log(sock, "HTTP/1.0 400 notfound_5\r\n\r\n\r\n");
 		return;
@@ -299,10 +297,10 @@ static void echo_www(int sock, const char* path, ssize_t size)
 
 static void  exec_cgi(int sockfd, const char* method, const char* query_string, const char* path)
 {
-	char mehtod_env[BUFF_SIZE/10];
+	char method_env[BUFF_SIZE/10];
 	char query_string_env[BUFF_SIZE/10];
 	char content_len_env[BUFF_SIZE/10];
-	bzero(mehtod_env, sizeof (mehtod_env));
+	bzero(method_env, sizeof (method_env));
 	bzero(query_string_env, sizeof (query_string_env));
 	bzero(content_len_env, sizeof (content_len_env));
 	
@@ -310,27 +308,25 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 	int output[2];
 	int content_len = -1;
 
-			//判断方法，如果是
-	if ( !strcasecmp(method, "GET") ){
+	if ( !strcasecmp(method, "GET") ){	//clear request socket, get query string
+
 		drop_header(sockfd);
 	}
 	
 	char buf[BUFF_SIZE/10];
-	if ( !strcasecmp(method, "POST") ){
+	if ( !strcasecmp(method, "POST") ){	//get Content-Length send msg for child
 		int ret = -1;
 		do{
 			bzero(buf, sizeof (buf));
 			ret = get_line(sockfd, buf, sizeof (buf));
-			if ( !strncasecmp("Content-Length :", buf, 16) ){
-				content_len = atoi(buf);
+			if ( !strncasecmp(buf, "Content-Length: ", 16) ){
+				content_len = atoi(&buf[16]);
 			}
 		}while ( ret > 0 && strcmp(buf, "\n") );
 		if (-1 == content_len){
-			//echo_error
 			printf_log(sockfd, "HTTP/1.0 400 notfound_6\r\n\r\n\r\n");
 			return;
 		}
-		//printf("content length is %d\n", content_len);
 	}
 
 	if (-1 == pipe(input) || -1 == pipe(output)){
@@ -351,7 +347,8 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 		
 		dup2(input[0], 0);
 		dup2(output[1],1);
-		
+		sprintf(method_env, "METHOD=%s", method);
+		putenv(method_env);
 		if ( !strcasecmp( "get", method) ){
 			if (!query_string){
 				//echo_errno
@@ -359,23 +356,22 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 				printf_log(sockfd, "HTTP/1.0 400 notfound_9\r\n\r\n\r\n");
 				return;
 			}
-			//printf("query_string is %s\n", query_string);
 			sprintf(query_string_env, "QUERY_STRING_ENV=%s", query_string);
 			putenv(query_string_env);
-
 			execl(path, path, NULL);
-
 			printf_log(sockfd, "HTTP/1.0 400 notfound_10\r\n\r\n\r\n");
-			printf ("exit, path is %s",path);
+			printf("exit, path is %s",path);
 			exit(1);
-		}else if ( !strcasecmp("POST", method) ){
+		}else if ( !strcasecmp("POST", method) ){ //post method
 			if (content_len < 0){
-				printf("content is error\n");
 				printf_log(sockfd, "HTTP/1.0 400 notfound_11\r\n\r\n\r\n");
 				return;
 			}
+			//putenv to child to read 0(output[0])
 			sprintf(content_len_env, "CONTENT_LEN_ENV=%d", content_len);
 			putenv(content_len_env);
+			execl(path, path, NULL);
+			exit(1);
 		}else {
 			//other method
 			printf("other method is %s\n", method);
@@ -384,27 +380,30 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 		//father
 		close(input[0]);
 		close(output[1]);
-		/* 响应服务器 */	
-		const char* msg = "HTTP/1.0 200 OK\r\n\r\n\r\n";
+		/* response to server */	
+		const char* msg = "HTTP/1.0 200 OK\r\n";
 		send(sockfd, msg, strlen(msg), 0);
+		//Content-type -> html
+		const char* type = "Content-Type: text/html;charset=ISO-8859-1\r\n\r\n";	
+		send(sockfd, type, strlen(type), 0);
+
 		char c = '\0';
 		int ret = -1;
-		if ( !strcasecmp("POST", method)){	/*POST 方法，将表单信息发给孩子进程 */
-			while ( recv(sockfd, &c, 1, 0) ){
-				write(input[0], &c, 1);
+		if ( !strcasecmp("POST", method)){	//method is post,send msg to child
+			int i = 0;
+			for (; i < content_len; ++i){
+				recv(sockfd, &c, 1, 0);
+				write(input[1], &c, sizeof (char));
 			}
 		}
 
 		char tmp[1024];
 		int i = 0;
-		while ( read(output[0], &c, 1) ){	/* 读子进程执行完后写入管道中的数据 */
+		while ( read(output[0], &c, 1) > 0 ){	//send child data to server
 			send(sockfd, &c, 1, 0);
 			tmp[i++] = c;
 		}
-		tmp[i] = 0;
-		//printf("father send to client : %s\n", tmp);
-		//printf_log(sockfd, "HTTP/1.0 400 notfound_11\r\n\r\n\r\n");
-	
+
 		waitpid(id, NULL, 0);
 		close(input[1]);
 		close(output[0]);
