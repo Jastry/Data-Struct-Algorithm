@@ -356,6 +356,7 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 				printf_log(sockfd, "HTTP/1.0 400 notfound_9\r\n\r\n\r\n");
 				return;
 			}
+			
 			sprintf(query_string_env, "QUERY_STRING_ENV=%s", query_string);
 			putenv(query_string_env);
 			execl(path, path, NULL);
@@ -389,21 +390,21 @@ static void  exec_cgi(int sockfd, const char* method, const char* query_string, 
 
 		char c = '\0';
 		int ret = -1;
+		//char tmp[1024];
 		if ( !strcasecmp("POST", method)){	//method is post,send msg to child
 			int i = 0;
 			for (; i < content_len; ++i){
 				recv(sockfd, &c, 1, 0);
 				write(input[1], &c, sizeof (char));
+				//tmp[i] = c;
 			}
 		}
+		//printf("post -> server : %s\n", tmp);
 
-		char tmp[1024];
-		int i = 0;
 		while ( read(output[0], &c, 1) > 0 ){	//send child data to server
 			send(sockfd, &c, 1, 0);
-			tmp[i++] = c;
 		}
-
+		//tmp[i] = 0;
 		waitpid(id, NULL, 0);
 		close(input[1]);
 		close(output[0]);
