@@ -142,12 +142,12 @@ int mysql_api::select(const char* stmt_str){
 				while (field = _blb_mysql_fetch_field(_result)){
 					printf("%s ", field->name);
 				}
-				printf("\n");
+				printf("\n\r");
 			}
 			printf("%s ", row[i] ? row[i] : "NULL");
 		}
 	}
-	printf("\n");
+	printf("\n\r");
 	_blb_mysql_free_result(_result);
 	return 0;
 }
@@ -201,19 +201,19 @@ void mysql_api::version()
 
 /*------------------  process.h    -----------------------------*/
 
+char query[BSIZE];
+map<string, string> mp;
+
 void process(const info* msg)
 {
 	assert(msg);
-	char query[1024];
-	bzero(query, sizeof (query));
 	int info_len = msg->_len;
-	map<string, string> mp;
 	
 	int i = 0;
 	int j = 0;
 	int k = 0;
-	char name[100];
-	char value[100];
+	char name[SIZE];
+	char value[SIZE];
 	bzero(name, sizeof (name));
 	bzero(value, sizeof (value));
 	
@@ -236,8 +236,49 @@ void process(const info* msg)
 	}
 	mp[name] = value;
 	map<string, string>::iterator it = mp.begin();
-	for (; it != mp.end(); ++it){
-		cout << it->first << " : " << it->second << endl;
-	}
+	//for (; it != mp.end(); ++it){
+	//	cout << it->first << " : " << it->second << endl;
+	//}
+	
+	//mp["table"] = "PersonInfo";
+	mysql_api mysql;
+	mysql.connect();
+	//p_drop(mysql);
+	//p_create(mysql);
+	p_insert(mysql);
+	p_select(mysql);
 }
 
+void p_select(mysql_api& mysql)
+{
+	const char* str = "SELECT * FROM ";
+	bzero(query, sizeof (query));
+	snprintf(query, sizeof (query), "%s %s", str, mp["select_table"].c_str());
+	mysql.select(query);
+	//echo_err
+}
+
+void p_create(mysql_api& mysql)
+{
+	const char* str = "CREATE TABLE ";
+	bzero(query, sizeof (query));
+	snprintf(query, sizeof (query), "%s %s (name varchar(10), sex varchar(5))charset utf8", str, mp["new_table"].c_str());
+	mysql.create(query);
+	//echo_err
+}
+
+void p_drop(mysql_api& mysql)
+{
+	const char* str = "DROP TABLE ";
+	bzero(query, sizeof (query));
+	snprintf(query, sizeof (query), "%s %s", str, mp["drop_table"].c_str());
+	mysql.drop(query);
+}
+
+void p_insert(mysql_api& mysql)
+{
+	const char* str = "INSERT INTO ";
+	bzero(query, sizeof (query));
+	snprintf(query, sizeof (query), "%s %s (name, sex) values ('%s', '%s')",str,mp["table"].c_str(), mp["key_1"].c_str(), mp["key_2"].c_str());
+	mysql.insert(query);
+}

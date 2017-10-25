@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <pthread.h>
+#include <string>
 
 using namespace std;
 
@@ -71,11 +72,12 @@ protected:
 
 #ifndef __PROCESS_H__
 #define __PROCESS_H__
-
+const int SIZE = 100;
+const int BSIZE = 1024;
 
 typedef struct client_info{
-	char _method[10];
-	char _msg[1024];
+	char _method[SIZE];
+	char _msg[BSIZE];
 	size_t _len;
 	client_info(){
 		bzero(_method, sizeof (_method));
@@ -85,4 +87,8 @@ typedef struct client_info{
 }info;
 
 void process(const info* msg);
+void p_select(mysql_api& mysql);
+void p_create(mysql_api& mysql);
+void p_drop(mysql_api& mysql);
+void p_insert(mysql_api& mysql);
 #endif //__PROCESS_H__
