@@ -3,20 +3,36 @@
 #include <stdlib.h>
 
 
+#if 0
+int main()
+{
+	std::cout << "hello world" << std::endl;
+	return 0;
+}
+#endif
+
 
 int main()
 {
 
-	RBTree<int, int> t;
+	rb_tree<int, int> t;
 	srand((unsigned)time(NULL));
 	for (int i = 0; i < 100; i++){
 		int n = rand() % 50000;
-		t.Insert(n);
+		t.insert(n);
 	}
 	
-	RBTree<int,int>::Iterator it = t.Begin();
+	rb_tree<int, int>::Iterator it = t.Begin();
 	while (it != t.End()){
-		std::cout << *it <<" "; 
+		std::cout << *it <<" ";
+		++it;
+	}
+	std::cout << std::endl;
+
+	it = t.rBegin();
+	while (it != t.rEnd()){
+		std::cout << *it <<" ";
+		--it;
 	}
 	std::cout << std::endl;
 	//t.inOder();

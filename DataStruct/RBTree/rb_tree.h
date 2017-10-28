@@ -1,7 +1,8 @@
 /*
-	windows 
-	VS2013
-	blbagony@163.com
+			rb_tree 2017 10 28
+			vs2013 / g++
+			blbagony@163.com
+
 */
 #ifndef __RBTREE_H__
 #define __RBTREE_H__
@@ -9,8 +10,9 @@
 #include <iostream>
 #include <stack>
 #include <utility>
-#include <time.h>
 #include <assert.h>
+#include <time.h>
+
 
 enum COLOUR{
 	RED,
@@ -29,7 +31,6 @@ struct _rb_tree_node{
 	_rb_tree_node(const Valuetype& value)
 		:_value(value), _left(NULL), _right(NULL), _parent(NULL), _col(RED){}
 };
-
 
 template <class Valuetype>
 struct _rb_tree_iterator{
@@ -66,19 +67,47 @@ struct _rb_tree_iterator{
 		}
 		return *this;
 	}
-
 	
-	Valuetype& operator*() const
+	Self& operator--()
+	{
+		if (!_node){
+			return *this;
+		}
+		/*分三种情况
+		1. cur 的左不为空，找到 cur 左树的最右节点
+		2. cur == parent -> right, parent 即为下一个节点
+		3. cur == parent -> left, 这时需要向上调整，找到 cur = parent->left
+		*/
+		_rb_node* cur = _node;
+		if (cur->_left){
+			cur = cur->_left;
+			while (cur->_right){
+				cur = cur->_right;
+			}
+			_node = cur;
+		}
+		else {
+			_rb_node* parent = cur->_parent;
+			while (parent && parent->_left == cur){
+				cur = parent;
+				parent = cur->_parent;
+			}
+			_node = parent;
+		}
+		return *this;
+	}
+	
+	Valuetype& operator*()
 	{
 		return _node->_value;
 	}
 	
-	Valuetype* operator->() const
+	Valuetype* operator->()
 	{
 		return &(this->operator*());
 	}
 	
-	bool operator!=(const Self it) const
+	bool operator!=(const Self it)
 	{
 		return _node != it._node;
 	}
@@ -99,100 +128,98 @@ public:
 public:
 	rb_tree()
 		:_root(NULL){}
+	
 	~rb_tree()
 	{
 		_rb_tree_delete(_root);
 	}
-bool insert(const Value& value)
-{
-	if (!_root){
-		_root = new Node(value);
+	bool insert(const Value& value)
+	{
+		if (!_root){
+			_root = new Node(value);
+			_root->_col = BLACK;
+			return true;
+		}
+
+		Node* cur = _root;
+		Node* parent = NULL;
+		while (cur){
+			parent = cur;
+			if (value > cur->_value)
+				cur = cur->_right;
+			else if (value < cur->_value)
+				cur = cur->_left;
+			else
+				return false;
+		}
+		cur = new Node(value);
+		cur->_parent = parent;
+	
+		if (value > parent->_value)
+			parent->_right = cur;
+		else
+			parent->_left = cur;
+		if (parent->_col == BLACK)
+			return true;
+
+		while (parent && RED == parent->_col){
+			//此时grandfather 一定存在
+			Node* grandfather = parent->_parent;
+			if (parent == grandfather->_left)
+			{
+				Node* uncle = grandfather->_right;
+				if (uncle && RED == uncle->_col){
+					parent->_col = uncle->_col = BLACK;
+					grandfather->_col = RED;
+					if (grandfather->_parent && grandfather->_parent->_col == RED){
+						cur = grandfather;
+						parent = cur->_parent;
+						grandfather = parent->_parent;
+					}
+					else
+						break;
+				}
+				else {
+					/* uncle 不存在 */
+					if (cur == parent->_right){
+						_rb_tree_rotate_left(parent);
+						/* 交换 parent 与 cur */
+						_swap(parent, cur);
+					}
+					_rb_tree_rotate_right(grandfather);
+					parent->_col = BLACK;
+					grandfather->_col = RED;
+				}
+			}
+			else {
+				Node* uncle = grandfather->_left;
+				if (uncle && uncle->_col == RED){
+					parent->_col = BLACK;
+					uncle->_col = BLACK;
+					grandfather->_col = RED;
+					if (grandfather->_parent && grandfather->_parent->_col == RED){
+						cur = grandfather;
+						parent = cur->_parent;
+						grandfather = parent->_parent;
+					}
+					else
+						break;
+				}
+				else
+				{
+					if (cur == parent->_left){
+						_rb_tree_rotate_right(parent);
+						_swap(parent, cur);
+					}
+					_rb_tree_rotate_left(grandfather);
+					parent->_col = BLACK;
+					grandfather->_col = RED;
+				}
+			}
+		}
 		_root->_col = BLACK;
 		return true;
 	}
-
-	Node* cur = _root;
-	Node* parent = NULL;
-	while (cur){
-		parent = cur;
-		if (value > cur->_value)
-			cur = cur->_right;
-		else if (value < cur->_value)
-			cur = cur->_left;
-		else
-			return false;
-	}
-	cur = new Node(value);
-	cur->_parent = parent;
-	
-	if (value > parent->_value)
-		parent->_right = cur;
-	else
-		parent->_left = cur;
-	if (parent->_col == BLACK)
-		return true;
-
-	while (parent && RED == parent->_col){
-		//此时grandfather 一定存在
-		Node* grandfather = parent->_parent;
-		if (parent == grandfather->_left)
-		{
-			Node* uncle = grandfather->_right;
-			if (uncle && RED == uncle->_col){
-				parent->_col = uncle->_col = BLACK;
-				grandfather->_col = RED;
-				if (grandfather->_parent && grandfather->_parent->_col == RED){
-					cur = grandfather;
-					parent = cur->_parent;
-					grandfather = parent->_parent;
-				}
-				else
-					break;
-			}
-			else {
-				/* uncle 不存在 */
-				if (cur == parent->_right){
-					_rb_tree_rotate_left(parent);
-					/* 交换 parent 与 cur */
-					_swap(parent, cur);
-				}
-				_rb_tree_rotate_right(grandfather);
-				parent->_col = BLACK;
-				grandfather->_col = RED;
-			}
-		}
-		else {
-			Node* uncle = grandfather->_left;
-			if (uncle && uncle->_col == RED){
-				parent->_col = BLACK;
-				uncle->_col = BLACK;
-				grandfather->_col = RED;
-				if (grandfather->_parent && grandfather->_parent->_col == RED){
-					cur = grandfather;
-					parent = cur->_parent;
-					grandfather = parent->_parent;
-				}
-				else
-					break;
-			}
-			else
-			{
-				if (cur == parent->_left){
-					_rb_tree_rotate_right(parent);
-					_swap(parent, cur);
-				}
-				_rb_tree_rotate_left(grandfather);
-				parent->_col = BLACK;
-				grandfather->_col = RED;
-			}
-		}
-	}
-	_root->_col = BLACK;
-	return true;
-}
-
-
-
 	void in_oder()
 	{
 		_rb_tree_in_oder(_root);
@@ -213,7 +240,7 @@ bool insert(const Value& value)
 		}
 		return _is_rb_tree(_root, 0, k);
 	}
-	Iterator& Begin()
+	Iterator Begin()
 	{
 		if (!_root)
 			return Iterator(NULL);
@@ -223,13 +250,29 @@ bool insert(const Value& value)
 		
 		return Iterator(cur);
 	}
-	Iterator& End(){
+	Iterator End(){
 		return Iterator(NULL);
 	}
-
-
+	Iterator rBegin()
+	{
+		Node* cur = _root;
+		while (cur && cur->_right){
+			cur = cur->_right;
+		}
+		return cur;
+	}
+	Iterator rEnd()
+	{
+		return NULL;
+	}
 private:
 
+	void _swap(Node*& left, Node*& right)
+	{
+		Node* tamp = left;
+		left = right;
+		right = tamp;
+	}
 	void _rb_tree_delete(Node* node)
 	{
 		if (!node)	
@@ -348,13 +391,6 @@ private:
 		if (!_is_rb_tree(node->_right, black_node_number, k))
 			return false;
 		return true;
-	}
-	void _swap(Node*& left, Node*& right)
-	{
-		assert(!left && !right);
-		Node* tamp = left;
-		left = right;
-		right = tamp;
 	}
 protected:
 	Node* _root;
