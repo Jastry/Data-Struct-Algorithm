@@ -2,6 +2,7 @@
 
 int main()
 {
+#if 0
 	UnionFindSet set(8);
 	set.SetUnionFriend(1, 2);
 	set.SetUnionFriend(3, 2);
@@ -17,6 +18,11 @@ int main()
 	set.SetUnionFriend(4, 8);
 
 	ret = set.UnionSize();
+#endif
+
+    std::string str = "hello world";
+    std::cout << str << std::endl;
+
 	return 0;
 }
 
