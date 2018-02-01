@@ -195,7 +195,7 @@ void processpool< T >::setup_sig_pipe()
 }
 
 /* 
- * 父进程中 m_idx 为 -1， 子进程中 m_idx > 0, 
+ * 父进程中 m_idx 为 -1， 子进程中 m_idx > 0 ~ 7, 
  * 我们据此判断接下来要运行的是父进程代码还是子进程代码
  */
 template < typename T >
@@ -349,6 +349,7 @@ void processpool< T >::run_parent()
                       (char*)&new_conn, sizeof(new_conn), 0);
                 printf("send request to child %d\n", i);
             }
+
             /* 下面处理父进程接收到信号 */
             else if ( (sockfd == sig_pipefd[0]) && (events[i].events & EPOLLIN) ) {
                 int sig;
@@ -372,11 +373,20 @@ void processpool< T >::run_parent()
                                          * 以标记子进程已经推出 
                                          */
                                         if ( m_sub_process[i].m_pid == pid ) {
-                                            m_stop = false;
+                                            printf("child %d join\n", i);
+                                            close(m_sub_process[i].m_pipefd[0]);
+                                            m_sub_process[i].m_pid = -1;
                                         }
                                     }
-                                    break;
                                 }
+                                /* 如果所有子进程退出父进程也退出 */
+                                m_stop = true;
+                                for (int i = 0; i < m_process_number; ++i) {
+                                    if ( m_sub_process[i].m_pid != -1 ) {
+                                        m_stop = false;
+                                    }
+                                }
+                                break;
                             }
                             case (SIGTERM):
                             case (SIGINT): {
