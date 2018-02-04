@@ -163,14 +163,280 @@ http_conn::HTTP_CODE http_conn::parse_request_line( char * text )
     *m_url++ = '\0';
     
     char * method = text;
-    if ( strncasecmp( method, "GET" ) == 0 ) {
+    if ( strcasecmp( method, "GET" ) == 0 ) {
         m_method = GET;
-    } else if ( strncasecmp( method, "POST" ) == 0 ) {
+    } else if ( strcasecmp( method, "POST" ) == 0 ) {
         m_method = POST;
     } else {
         m_method = BAD_REQUEST;
     }
 
     m_url += strspn( m_url, '\t' );
+    if ( strcasecmp( m_version, "HTTP/1.1" ) != 0 ) {
+        RETURN BAD_REQUEST;
+    }
+
+    if ( strncasecmp( m_url, "http://", 7 ) == 0 ) {
+        m_url += 7;
+    
+        /* The strchr() function returns a pointer to the first occurrence of the character c in the string s. */
+        m_url = strchr( m_url, '/');
+        printf("m_url is %s\n", m_url);
+    }
+
+    if ( !m_url || m_url[ 0 ] != '/') {
+        return BAD_REQUEST;
+    }
+
+    m_check_state = CHECK_STATE_HEADER;
+    return NO_REQUEST;
 }
+
+/* 解析 HTTP 请求的一个头部信息 */
+http_conn::HTTP_CODE http_conn::parse_headers( char * text )
+{
+    /* 遇到空行表示头部字段解析完毕 */
+    if ( text[0] == '\0' ) {
+        /* 
+         * 如果 HTTP 请求有消息体，则还需要读取 m_content_length 字节的消息体，
+         * 状态机转移到 CHECK_STATE_CONTENT 状态 
+         */
+        if ( m_content_length != 0) {
+            m_check_state = CHECK_STATE_CONTENT;
+            return NO_REQUEST;
+        }
+
+        /* 否则说明我们已经得到了一个完整的 HTTP 请求 */
+        return GET_REQUEST;
+    }
+
+    /* 处理 Connection 头部字段 */
+    else if ( strncasecmp( text, "Connection", 11 ) == 0 ) {
+        text += 11;
+        /************************
+         *                      *
+         *   注意是"空格 /t"    *
+         *                      *
+         ************************/
+        text += strspn( text, " \t" );
+        if ( strcasecmp( text, "keep-alive" ) == 0 ) {
+            m_linger = true;
+        }
+    }
+
+    /* 处理 Content-Length 头部字段 */
+    else if ( strncasecmp( text, "Content-Length:", 15 ) == 0 ) {
+        text += 15;
+        text += strspn( text," \t" );
+        m_content_length = atol( text );
+    }
+
+    /* 处理 host 头部消息 */
+    else if ( strncasecmp( text, "Host:", 5 ) == 0 ) {
+        text += 5;
+        text += strspn( text, " \t" );
+        m_host = text;
+    }
+
+    /* 其他方法打印出来*/
+    else {
+        printf( "oop! Unknow header %s\n", text );
+    }
+    
+    return NO_REQUEST;
+}
+
+/* 分析主状态机 */
+http_conn::HTTP_CODE http_conn::process_read( void )
+{
+    LINE_STATUS line_status = LINE_OK;
+    HTTP_CODE ret = NO_REQUEST;
+    char * text = 0;
+
+    while ( ( ( m_check_state == CHECK_STATE_CONTENT ) && (line_status == LINE_OK) ) || ( ( line_status = parse_line() ) == LINE_OK ) ) {
+        text = get_line();
+        m_start_line = m_checked_idx;
+        printf(" got 1 http line: %s\n", text);
+
+        switch ( m_check_state ) {
+
+            /* 解析请求行，获取方法、url 和 HTTP 版本 */
+            case ( CHECK_STATE_REQUESTLINE ):
+            {
+                ret = parse_request_line( text );
+                if ( ret == BAD_REQUEST ) {
+                    return BAD_REQUEST;
+                }
+                break;
+            }
+            
+            /* 解析头部，获取 Conntion 和 Content-Length */
+            case ( CHECK_STATE_HEADER ):
+            {
+                ret = parse_headers( text );
+                if ( ret == BAD_REQUEST ) {
+                    return BAD_REQUEST;
+                } else if ( ret == GET_REQUEST ) {
+                    
+                    /* 处理请求 */
+                    return do_request();
+                }
+                break;
+            }
+            
+            /* 解析文本 */
+            case ( CHECK_STATE_CONTENT ):
+            {
+                ret = parse_content( text );
+                if ( ret == GET_REQUEST ) {
+                    return do_request();
+                }
+                line_status = LINE_OPEN;
+                break;
+            }
+
+            default:
+            {
+                printf(" case m_check_state default\n");
+                return INTERNAL_ERROR;
+            }
+        }//switch
+
+    }//while
+    return NO_REQUEST;
+}
+
+/* 
+ * 当得到一个完整的、正确的 http 请求时，我们就分析目标文件的属性。
+ * 如果目标文件存在、对用户可读、且不是目录，则使用 mmap 将文件
+ * 映射到内存地址 m_file_address 处，并告诉调用者文件获取成功 
+ */
+http_conn::HTTP_CODE http_conn::do_request( void )
+{
+    strcpy( m_real_file, doc_root );
+    int len = strlen( doc_root );
+    strncpy( m_real_file + len, m_url, FILENAME_LEN-len-1 );
+    printf(" m_real_file is: %s\n", m_real_file);
+
+    if ( stat(m_real_file, &m_file_stat) < 0 ) {
+        return NO_REQUEST;
+    }
+
+    if ( ! ( m_file_stat.st_mode & S_IROTH ) ) {
+        return FORBIDDEN_REQUEST;
+    }
+
+    if ( S_ISDIR( m_file_stat.st_mode ) ) {
+
+        printf(" 请求的是网页目录: %s\n, m_real_file");
+        return BAD_REQUEST;
+    }
+
+    int fd = open( m_real_file, O_RDONLY );
+
+    /* 将文件内容映射到地址 m_file_address 位置处 */
+    m_file_address = ( char* )mmap( 0, m_file_stat.st_size, PROT_READ );
+
+
+    close( fd );
+}
+
+/* 对映射区执行 munmap 操作 */
+/*
+       mmap()  creates  a  new  mapping in the virtual address space of the calling process.  The starting address for the new mapping is
+       specified in addr.  The length argument specifies the length of the mapping.
+
+       If addr is NULL, then the kernel chooses the address at which to create the mapping; this is the most portable method of  creating
+       a  new  mapping.   If addr is not NULL, then the kernel takes it as a hint about where to place the mapping; on Linux, the mapping
+       will be created at a nearby page boundary.  The address of the new mapping is returned as the result of the call.
+
+       The contents of a file mapping (as opposed to an anonymous mapping; see MAP_ANONYMOUS below), are initialized using  length  bytes
+       starting  at  offset offset in the file (or other object) referred to by the file descriptor fd.  offset must be a multiple of the
+       page size as returned by sysconf(_SC_PAGE_SIZE).
+ */
+bool http_conn::write( void )
+{
+    int map = 0;
+    int bytes_have_send = 0;
+    
+    /* m_write_idx 写缓冲区待发送的字节数 */
+    int bytes_to_send = m_write_idx;
+    if ( bytes_to_send == 0 ) {
+        modfd( m_epollfd, m_sockfd, EPOLLIN );
+        init();
+        return true;
+    }
+
+    while (1) {
+        temp = writev( m_sockfd, m_iv, m_iv_count );
+        if (temp <= -1) {
+            /*
+             * 如果 TCP 写缓冲区没有空间，则等待下一轮 EPOLLOUT 事件，
+             * 虽然在此期间服务器无法立即接收到同一客户的下一个请求
+             * 但这样做可以保证连接的完整性
+             */
+            if ( errno == EAGAIN ) {
+                modfd( m_epollfd, m_sockfd, EEPOLLOUT );
+                return true;
+            }
+
+            unmap();
+            return false;
+        }
+
+        bytes_to_send -= temp;
+        bytes_have_send += temp;
+        if ( bytes_to_send <= bytes_have_send ) {
+            /* 发送 HTTP 响应成功，根据   HTTP 请求中的 Connection 字段决定是否立即关闭连接 */
+            unmap();
+            if ( m_linger ) {
+                init();
+                modfd( m_epollfd, m_sockfd, EPOLLIN );
+                return true;
+            } else {
+                modfd( m_epollfd, m_sockfd, EPOLLIN );
+                return false;
+            }
+        }
+    }//while 
+}
+
+/* 往读缓冲区写入待发送的数据 */
+bool http_conn::add_response( const char * format, ... )
+{
+    if ( m_write_idx >= WRITE_BUFFER_SIZE) {
+        return false;
+    }
+
+    va_list arg_list;
+    va_start( arg_list, formart );
+    int len = vsprintf( m_write_buf + m_write_idx, WRITE_BUFFER_SIZE-1-m_write_idx, format, arg_list );
+    if ( len >= ( WRITE_BUFFER_SIZE - 1 - m_write_idx ) ) {
+        return false;
+    }
+    m_write_idx += len;
+    va_end( arg_list );
+    return true;
+}
+
+bool http_conn::add_status_line( int status, const char * title ) 
+{
+    return add_response( "%s %d %s\r\n", "HTTP/1.1", status, title );
+}
+
+bool http_conn::add_content_length( int content_len )
+{
+    add_content_length( content );
+    add_linger( arg_list );
+    add_blank_line();
+}
+
+
+
+
+
+
+
+
+
 
