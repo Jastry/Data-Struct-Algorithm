@@ -3,8 +3,20 @@
 
 #include <unistd.h>
 #include <signal.h>
-#include <sys.types.h>
-
+#include <sys/types.h>
+#include <sys/epoll.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <assert.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <stdarg.h>
 #include <errno.h>
 #include "locker.h"
 
@@ -78,11 +90,13 @@ private:
 
     /* 下面一组函数被 process_write 调用，用来填充HTTP应答 */
     void unmap();
-    bool add_reponse( const char * format, ... );
+    bool add_response( const char * format, ... );
     bool add_content( const char * content );
+    bool add_status_line( int status, const char * title );
     bool add_headers( int content_length );
+    bool add_content_length( int content_length );
     bool add_linger( void );
-    bool add_black_line( void );
+    bool add_blank_line( void );
 
 public:
 
@@ -120,7 +134,7 @@ private:
 
 
     /* 主状态机当前所处的状态 */
-    CHECK_STAT m_check_state;
+    CHECK_STATE m_check_state;
 
     /* 请求方方发 */
     METHOD m_method;
