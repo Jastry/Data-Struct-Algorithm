@@ -55,7 +55,7 @@ threadpool< T >::threadpool( int thread_num, int max_request )
     :m_thread_number( thread_num ), m_max_request( max_request ),
     m_stop( false ), m_threads( NULL )
 {
-    if (( thread_number <= 0 ) || ( max_request <= 0 )) {
+    if (( m_thread_number <= 0 ) || ( max_request <= 0 )) {
         throw std::exception();
     }
 
@@ -65,7 +65,7 @@ threadpool< T >::threadpool( int thread_num, int max_request )
     }
 
     /* 创建 thread_number 个线程，并将它们都设置为脱离线程 */
-    for ( int i = 0; i < thread_number; ++i ) {
+    for ( int i = 0; i < m_thread_number; ++i ) {
         
         /* 初始化线程池 */
         printf("create the %dth thread\n", i);
