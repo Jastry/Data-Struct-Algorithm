@@ -61,13 +61,100 @@ int main(int argc, char * argv[])
         printf(" in main catch\n ");
         return 1;
     }
-
+    
     /* 预先为每个可能的客户连接分配一个 http_conn 对象 */
-    http_conn *user = new http_conn[MAX_FD];
-    assert( user );
+    http_conn *users = new http_conn[MAX_FD];
+    assert( users );
     int user_count = 0;
-    std::cout << "hello ckr\n";
-    delete [] user;
+    
+    int listenfd = socket( AF_INET, SOCK_STREAM, 0 );
+    assert( listenfd >= 0 );
+    struct linger tmp = {1, 0};
+    setsockopt( listenfd, SOL_SOCKET, SO_LINGER, &tmp, sizeof( tmp ) );
+
+    int ret = 0;
+    struct sockaddr_in address;
+    bzero( &address, sizeof(address) );
+    address.sin_family = AF_INET;
+    inet_pton( AF_INET, ip, &address.sin_addr );
+    address.sin_port = htons( port );
+
+    ret = bind( listenfd, (struct sockaddr*)&address, sizeof(address) );
+    assert( ret >= 0 );
+
+    ret = listen( listenfd, 5 );
+    assert( ret >= 0 );
+
+    epoll_event events[ MAX_EVENT_NUMBER ];
+    int epollfd = epoll_create( 92 );
+    assert( epollfd != -1 );
+    addfd( epollfd, listenfd, false );
+    http_conn::m_epollfd = epollfd;
+
+    while ( true ) {
+        
+        int number = epoll_wait( epollfd, events, MAX_EVENT_NUMBER, -1 );
+        if ( ( number < 0 ) && errno != EINTR ) {
+            printf( "%s\n", "epoll failure" );
+            break;
+        }
+
+        for ( int i = 0; i < number; ++i ) {
+            int sockfd = events[ i ].data.fd;
+            if ( listenfd == sockfd ) {
+                /* 新用户连接 */
+                struct sockaddr_in client_address;
+                socklen_t client_addrlength = sizeof( client_address );
+                int connfd = accept( sockfd, (struct sockaddr*)&client_address, 
+                                     &client_addrlength );
+
+                if ( connfd < 0 ) {
+                    printf( "errno is: %d\n", errno );
+                    continue;
+                }
+                if ( http_conn::m_user_count >= MAX_FD ) {
+                    show_error( connfd, "Internal server busy" );
+                    continue;
+                }
+                
+                printf("get a new client ip: %s, port :%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+                /* 初始化客户连接 */
+                users[ connfd ].init( connfd, client_address );
+            } 
+
+            else if ( events[ i ].events & ( EPOLLRDHUP | EPOLLHUP | EPOLLERR ) ) {
+                /* 如果有异常直接关闭客户端 */
+                users[ sockfd ].close_conn();
+            }
+
+            else if ( events[ i ].events & EPOLLIN ) {
+                /* 根据读取的结果决定是将任务加到线程池， 还是丢弃 */
+                if ( users[ sockfd ].read() ) {
+                    printf( "添加到任务池\n" );
+                    pool->append( users + sockfd );
+                } else {
+                    printf( "关闭连接\n" );
+                    users[ sockfd ].close_conn();
+                }
+            }
+
+            else if ( events[ i ].events & EPOLLOUT ) {
+#if 1
+                /* 根据写的结束， 决定是否关闭连接 */
+                if ( !users[ sockfd ].write() ) {
+                    printf("关闭连接\n");
+                    users[ sockfd ].close_conn();
+                }
+                users[ sockfd ].process();
+#endif
+            } else {}
+        }//for
+    }//while
+
+    close( epollfd );
+    close( listenfd );
+    delete [] users;
     delete pool;
+    std::cout << "hello ckr\n";
     return 0;
 }

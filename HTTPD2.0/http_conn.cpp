@@ -4,7 +4,7 @@
 /* 定义 HTTP 响应的一些状态信息 */
 const char * ok_200_title = "OK";
 const char * error_400_title = "Bad Request";
-const char * error_400_form = "Your request has bad syntax or is inherently impossible to satisfy.\n";
+const char * error_400_form = "Your request has bad syntax or is interently impossible to satisfy.\n";
 const char * error_403_title = "Forbidden";
 const char * error_403_form = "You do not have permission to get file from this server.\n";
 const char * error_404_title = "Not Found";
@@ -13,7 +13,7 @@ const char * error_500_title = "Internal Error";
 const char * error_500_form = "There was an unusual problem serving the requested file.\n";
 
 /* 网站根目录 */
-const char * doc_root = "./wwwroot/index.html";
+const char * doc_root = ".";
 
 int setnonblocking( int fd )
 {
@@ -167,6 +167,7 @@ http_conn::HTTP_CODE http_conn::parse_request_line( char * text )
         m_method = GET;
     } else if ( strcasecmp( method, "POST" ) == 0 ) {
         m_method = POST;
+        m_check_state = CHECK_STATE_CONTENT;
     } else {
         return BAD_REQUEST;
     }
@@ -247,7 +248,7 @@ http_conn::HTTP_CODE http_conn::parse_headers( char * text )
 
     /* 其他方法打印出来*/
     else {
-        printf( "oop! Unknow header %s\n", text );
+        //printf( "oop! Unknow header %s\n", text );
     }
     
     return NO_REQUEST;
@@ -297,7 +298,8 @@ http_conn::HTTP_CODE http_conn::process_read( void )
                     
                     /* 处理请求 */
                     return do_request();
-                }
+                } //else if ( ret == POST_REQUEST )
+                line_status = LINE_OPEN;
                 break;
             }
             
@@ -336,6 +338,7 @@ http_conn::HTTP_CODE http_conn::do_request( void )
     printf(" m_real_file is: %s\n", m_real_file);
 
     if ( stat(m_real_file, &m_file_stat) < 0 ) {
+        printf("没有此文件\n");
         return NO_REQUEST;
     }
 
@@ -355,8 +358,8 @@ http_conn::HTTP_CODE http_conn::do_request( void )
     m_file_address = ( char* )mmap( 0, m_file_stat.st_size, PROT_READ, 
                                     MAP_PRIVATE, fd, 0);
 
-
     close( fd );
+    return FILE_REQUEST;
 }
 
 /* 对映射区执行 munmap 操作 */
@@ -397,7 +400,9 @@ bool http_conn::write( void )
     }
 
     while (1) {
+        printf("%s\n", m_write_buf);
         temp = writev( m_sockfd, m_iv, m_iv_count );
+        printf("temp is %d\n", temp);
         if (temp <= -1) {
             /*
              * 如果 TCP 写缓冲区没有空间，则等待下一轮 EPOLLOUT 事件，
@@ -567,12 +572,15 @@ void http_conn::process( void )
 {
     HTTP_CODE read_ret = process_read();
     if ( read_ret == NO_REQUEST ) {
+        printf("NO_REQUEST\n");
         modfd( m_epollfd, m_sockfd, EPOLLIN );
         return;
     }
     bool write_ret = process_write( read_ret );
     if ( !write_ret ) {
+        printf("没有将事件更改为读关心\n");
         close_conn();
     }
+    printf("将事件设置成 EPOLLOUT\n");
     modfd( m_epollfd, m_sockfd, EPOLLOUT );
 }
