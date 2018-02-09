@@ -237,6 +237,7 @@ http_conn::HTTP_CODE http_conn::parse_headers( char * text )
         text += 15;
         text += strspn( text," \t" );
         m_content_length = atol( text );
+        m_check_state = CHECK_STATE_CONTENT;
     }
 
     /* 处理 host 头部消息 */
@@ -421,7 +422,10 @@ bool http_conn::write( void )
         bytes_to_send -= temp;
         bytes_have_send += temp;
         if ( bytes_to_send <= bytes_have_send ) {
-            /* 发送 HTTP 响应成功，根据   HTTP 请求中的 Connection 字段决定是否立即关闭连接 */
+            /* 
+             * 发送 HTTP 响应成功，
+             * 根据   HTTP 请求中的 Connection 字段决定是否立即关闭连接 
+             */
             unmap();
             if ( m_linger ) {
                 init();
@@ -581,6 +585,6 @@ void http_conn::process( void )
         printf("没有将事件更改为读关心\n");
         close_conn();
     }
-    printf("将事件设置成 EPOLLOUT\n");
+    //printf("将事件设置成 EPOLLOUT\n");
     modfd( m_epollfd, m_sockfd, EPOLLOUT );
 }
