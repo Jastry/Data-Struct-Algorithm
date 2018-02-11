@@ -248,7 +248,9 @@ void processpool< T >::run_child()
                     bzero(&client_address, sizeof(client_address));
                     socklen_t addr_len = sizeof(client_address);
                     int connfd = accept(m_listenfd, (struct sockaddr*)&client_address, &addr_len);
+
                     printf("get a client ip %s, port is %d \n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+                    
                     if (connfd < 0) {
                         perror("accept");
                         continue;
