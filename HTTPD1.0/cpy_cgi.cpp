@@ -211,6 +211,8 @@ public:
                 } else {
                     drop_header(m_sockfd);
                     echo_www(m_file.c_str(), st.st_size);
+                    m_file.clear();
+                    
                     close(m_sockfd);
                 }
             }
@@ -227,9 +229,6 @@ private:
             not_found(m_sockfd);
             close(fd);
             return;
-        } else {
-            bad_request(m_sockfd);
-            //std::cout << "找到了要找的文件\n";
         } 
         headers(m_sockfd);
         if (-1 == sendfile(m_sockfd, fd, NULL, size)) {
