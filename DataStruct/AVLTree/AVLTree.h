@@ -227,13 +227,14 @@ protected:
 		}
 		subRL->_bf = 0;
 	}
-
+#if 0
 	bool _isBalance(const Node* root, int& height)
 	{
 		if (!root){
 			height = 0;
 			return true;
 		}
+
 		int leftHeight = 0;
 		if (!_isBalance(root->_left, leftHeight))
 			return false;
@@ -253,6 +254,27 @@ protected:
 			return false;
 		return true;
 	}
+#endif
+    bool _isBalance(const Node* root, int& high)
+    {
+        if (NULL == root) {
+            high = 0;
+            return true;
+        }
+
+        int left_high = 0;
+        if (!_isBalance(root->_left, left_high))
+            return false;
+
+        int right_high = 0;
+        if (!_isBalance(root->_right, right_high))
+            return false;
+
+        high = left_high > right_high ? left_high+1 : right_high+1;
+        if (abs(left_high - right_high) > 1)
+            return false;
+        return true;
+    }
 
 private:
 	Node* _root;

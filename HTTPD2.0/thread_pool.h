@@ -68,8 +68,8 @@ threadpool< T >::threadpool( int thread_num, int max_request )
     for ( int i = 0; i < m_thread_number; ++i ) {
         
         /* 初始化线程池 */
-        printf("create the %dth thread\n", i);
-        if ( pthread_create(&m_threads[i], NULL, worker, this) != 0 ) {
+        //printf("create the %dth thread\n", i);
+        if ( pthread_create(m_threads + i, NULL, worker, this) != 0 ) {
             delete [] m_threads;
             throw std::exception();
         }
@@ -149,6 +149,7 @@ void threadpool< T >::run()
         if ( !request ) {
             continue;
         }
+        //printf("线程执行 process\n");
         request->process();
     }
 }

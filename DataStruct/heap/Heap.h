@@ -86,7 +86,7 @@ protected:
 				break;
 		}
 	}
-
+#if 0
 	void _AdjustDown(size_t parent){
 		size_t child = parent * 2 + 1;
 		size_t sz = _heap.size();
@@ -105,6 +105,26 @@ protected:
 		}
 	
 	}
+#endif 
+    void _AdjustDown(size_t parent)
+    {
+        size_t child = parent * 2 + 1;
+        size_t sz = _heap.size();
+        
+        while (child < sz) {
+            if (child+1< sz && heap[child] < heap[child+1]) 
+                child++;
+            if (_heap[child] > _heap[parent]) {
+
+            
+                swap(_heap[child], _heap[parent]);
+                parent = child;
+                child = parent * 2 + 1;
+            }
+            else 
+                break;
+        }
+    }
 protected:
 	 std::vector<T> _heap;
 };

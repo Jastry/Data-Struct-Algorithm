@@ -43,10 +43,10 @@ add_blank_line	http_conn.cpp	/^bool http_conn::add_blank_line( void )$/;"	f	clas
 add_content	http_conn.cpp	/^bool http_conn::add_content( const char * content )$/;"	f	class:http_conn
 add_content_length	http_conn.cpp	/^bool http_conn::add_content_length( int content_len )$/;"	f	class:http_conn
 add_headers	http_conn.cpp	/^bool http_conn::add_headers( int content_len )$/;"	f	class:http_conn
-add_linger	http_conn.cpp	/^bool add_linger( void )$/;"	f
+add_linger	http_conn.cpp	/^bool http_conn::add_linger( void )$/;"	f	class:http_conn
 add_response	http_conn.cpp	/^bool http_conn::add_response( const char * format, ... )$/;"	f	class:http_conn
 add_status_line	http_conn.cpp	/^bool http_conn::add_status_line( int status, const char * title ) $/;"	f	class:http_conn
-addfd	http_conn.cpp	/^void addfd( int empollfd, int fd, bool one_shot )$/;"	f
+addfd	http_conn.cpp	/^void addfd( int epollfd, int fd, bool one_shot )$/;"	f
 addsig	main.cpp	/^void addsig( int sig, void(handler)(int), bool restart = true )$/;"	f
 append	thread_pool.h	/^bool threadpool< T >::append( T * request )$/;"	f	class:threadpool
 close_conn	http_conn.cpp	/^void http_conn::close_conn( bool real_close )$/;"	f	class:http_conn
@@ -105,27 +105,30 @@ m_version	http_conn.h	/^    char * m_version;$/;"	m	class:http_conn
 m_workqueue	thread_pool.h	/^    std::list< T* > m_workqueue;$/;"	m	class:threadpool
 m_write_buf	http_conn.h	/^    char m_write_buf [ WRITE_BUFFER_SIZE ];$/;"	m	class:http_conn
 m_write_idx	http_conn.h	/^    int m_write_idx;$/;"	m	class:http_conn
-main	main.cpp	/^int main()$/;"	f
+main	main.cpp	/^int main(int argc, char * argv[])$/;"	f
 main	thread_pool.cpp	/^int main()$/;"	f
 modfd	http_conn.cpp	/^void modfd( int epollfd, int fd, int ev )$/;"	f
 ok_200_title	http_conn.cpp	/^const char * ok_200_title = "OK";$/;"	v
+parse_content	http_conn.cpp	/^http_conn::HTTP_CODE http_conn::parse_content( char * text )$/;"	f	class:http_conn
 parse_headers	http_conn.cpp	/^http_conn::HTTP_CODE http_conn::parse_headers( char * text )$/;"	f	class:http_conn
-parse_line	http_conn.cpp	/^http_conn::LINE_STATUS http http_conn::parse_line( void )$/;"	f	class:http_conn
+parse_line	http_conn.cpp	/^http_conn::LINE_STATUS http_conn::parse_line( void )$/;"	f	class:http_conn
 parse_request_line	http_conn.cpp	/^http_conn::HTTP_CODE http_conn::parse_request_line( char * text )$/;"	f	class:http_conn
 post	locker.h	/^    bool post()$/;"	f	class:sem
 process	http_conn.cpp	/^void http_conn::process( void )$/;"	f	class:http_conn
 process_read	http_conn.cpp	/^http_conn::HTTP_CODE http_conn::process_read( void )$/;"	f	class:http_conn
 process_write	http_conn.cpp	/^bool http_conn::process_write( HTTP_CODE ret )$/;"	f	class:http_conn
-read	http_conn.cpp	/^bool http_conn::read( viod )$/;"	f	class:http_conn
+read	http_conn.cpp	/^bool http_conn::read( void )$/;"	f	class:http_conn
 removefd	http_conn.cpp	/^void removefd( int epollfd, int fd )$/;"	f
 run	thread_pool.h	/^void threadpool< T >::run()$/;"	f	class:threadpool
 sem	locker.h	/^    sem()$/;"	f	class:sem
 sem	locker.h	/^class sem{$/;"	c
 setnonblocking	http_conn.cpp	/^int setnonblocking( int fd )$/;"	f
+show_error	main.cpp	/^void show_error( int connfd, const char * info )$/;"	f
 signal	locker.h	/^    bool signal()$/;"	f	class:cond
 threadpool	thread_pool.h	/^class threadpool {$/;"	c
 threadpool	thread_pool.h	/^threadpool< T >::threadpool( int thread_num, int max_request )$/;"	f	class:threadpool
 unlock	locker.h	/^    bool unlock()$/;"	f	class:locker
+unmap	http_conn.cpp	/^void http_conn::unmap( void )$/;"	f	class:http_conn
 wait	locker.h	/^    bool wait()$/;"	f	class:cond
 wait	locker.h	/^    bool wait()$/;"	f	class:sem
 worker	thread_pool.h	/^void * threadpool< T >::worker( void * arg )$/;"	f	class:threadpool

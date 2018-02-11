@@ -105,6 +105,7 @@ MYSQL_RES* _blb_mysql_store_result(MYSQL* mysql)
 	unblock_rts_signals();
 	return ret;
 }
+
 void _blb_mysql_free_result(MYSQL_RES* mysql)
 {
 	block_rts_signals();
@@ -118,8 +119,6 @@ void _echo_error(MYSQL* mysql)
 }
 
 /*-------------     mysql_api.h    ----------------------*/
-
-
 int mysql_api::select(const char* stmt_str){
 	MYSQL_ROW row;
 	MYSQL_FIELD* field;
@@ -151,7 +150,6 @@ int mysql_api::connect(){
 		_blb_mysql_real_connect(_mysql, _host.c_str(), _user.c_str(), _passwd.c_str(), _db.c_str(), _port, NULL, 0);
 		return 0;
 }
-
 
 int mysql_api::create(const char* stmt_str){
 	_blb_mysql_query(_mysql, stmt_str);

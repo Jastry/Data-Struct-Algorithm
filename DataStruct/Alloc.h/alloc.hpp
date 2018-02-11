@@ -2,7 +2,7 @@
 #define __ALLOC_H__
 
 #include <iostream>
-#include<stdarg.h>
+#include <stdarg.h>
 #include <cstdlib>
 
 namespace SpatialConfigurator {

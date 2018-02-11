@@ -195,6 +195,28 @@ static size_t PartSort1(int *a, size_t left, size_t right)
     return begin;
 }
 
+#if 0
+size_t PartSort1(int* a, size_t left, size_t right)
+{
+    assert(a);
+    int key = a[right];
+    int begin = left;
+    int end = right;
+    while (begin < end) {
+        while (begin < end && a[begin] <= key)
+            ++begin;
+        while (begin < end && a[end] >= key)
+            --end;
+        if (begin < end) {
+            swap(a[begin], a[end]);
+        }
+    }
+    swap(a[begin], a[end]);
+    return begin;
+}
+#endif
+
+
 //wa keng fa
 static size_t PartSort2(int *a, size_t left, size_t right)
 {
@@ -277,10 +299,23 @@ void QuickSort(int *a, size_t left, size_t right)
 
     int div = PartSort1(a, left, right);
     QuickSort(a, left, div - 1);
-    QuickSort(a, div - 1, right);
+    QuickSort(a, div + 1, right);
 
 }
+#if 0
+void QuickSort(int* a, size_t left, size_t right)
+{
+    assert(a);
+    if (right - left < 16){
+        InsertSort(a, right - left + 1);
+        return;
+    }
 
+    int div = PartSort1(a, left, right);
+    QuickSort(a, left, div - 1);
+    QuickSort(a, div + 1, right);
+}
+#endif
 void CountSort(int *a, size_t n)
 {
     assert(a);

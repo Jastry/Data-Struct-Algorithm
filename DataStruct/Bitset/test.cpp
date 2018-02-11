@@ -1,8 +1,10 @@
 #include "bitset.h"
 #include "bloomFilter.h"
+#include <unistd.h>
+
 int main()
 {
-	Bitset set(-1);
+	Bitset set(1000000);
 	set.Set(4);
 	set.Set(16);
 	set.Set(24);
@@ -18,5 +20,9 @@ int main()
 	ret = set.Test(24);
 	ret = set.Test(20);
 	ret = set.Test(15);
+    for (size_t i = 0;i < 100000; ++i) {
+        set.Test(i);
+        sleep(1);
+    }
 	return 0;
 }

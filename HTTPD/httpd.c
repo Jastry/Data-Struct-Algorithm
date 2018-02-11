@@ -7,8 +7,13 @@ void usage(const char* proc)
 
 static int get_line(int sockfd, char* line, int size)
 {
-	//ret > 1,line != '\0' 表示读的是数据;ret == 1 && line == '\n';表示空行;ret <= 0 && line == '\0'读完了
-	/* '\r' -> '\n'; '\r\n' -> '\n' */
+	/*
+     * ret > 1,line != '\0' 表示读的是数据;
+     * ret == 1 && line == '\n'表示空行;
+     * ret <= 0 && line == '\0'读完了;
+     * '\r' -> '\n'; '\r\n' -> '\n' 
+     */
+
 	assert(line);
 	int  len = 0;
 	int  r = 0;
@@ -161,6 +166,7 @@ void* header_request(void* arg)
 	bzero(path, sizeof (line));
 	bzero(url, sizeof (line));
 	int cgi = 0;
+
 	/* 从请求行中提取方法和路径 */
 	int size = get_line( connfd, line, sizeof (line) );
 	if ( size <= 0 ){
@@ -181,7 +187,7 @@ void* header_request(void* arg)
 		i++;
 	
 	int j = 0;
-	while (!isspace(line[i])){	
+	while (!isspace(line[i])){
 		// get url 
 		url[j] = line[i];
 		j++; i++;

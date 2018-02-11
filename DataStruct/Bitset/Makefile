@@ -1,5 +1,5 @@
 test:test.cpp
-	g++ -o $@ $^
+	g++ -g -o $@ $^
 .PHONY:clean
 clean:
 	rm -rf test

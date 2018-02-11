@@ -25,7 +25,7 @@
 #define MAX_EVENT_NUMBER 1024
 #define BACKLOG 2 
 #define BUFF_SIZE 1024
-#define SERVER_STRING "Server: jdbhttpd/0.1.0\r\n"
+#define SERVER_STRING "Server: httpd/0.1.0\r\n"
 #define STDIN   0
 #define STDOUT  1
 #define STDERR  

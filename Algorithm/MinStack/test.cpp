@@ -1,6 +1,19 @@
-#include "MinStack.hpp"
+//#include "MinStack.hpp"
+#include <string.h>
+#include <stdio.h>
 
+int main()
+{
+    char s[] =" h e l l o w o r ld  salkdas;lll/sdskfd";
+    char *pch = strtok(s, " ;/");
+    while (pch != NULL) {
+        printf("%s \n", pch);
+        pch = strtok(NULL, " ;/");
+    }
+    return 0;
+}
 
+#if 0
 int main()
 {
 	/*method1::MinStack<int> s;
@@ -62,4 +75,4 @@ int main()
 	ch.mid2::print();*/
 	return 0;
 }
-
+#endif

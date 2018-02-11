@@ -59,12 +59,14 @@ public:
     /* 获取互斥锁 */
     bool lock()
     {
+        //printf("任务池加锁\n");
         return pthread_mutex_lock( &m_mutex ) == 0;
     }
 
     /* 释放互斥锁 */
     bool unlock()
     {
+        //printf("任务池解锁\n");
         return pthread_mutex_unlock( &m_mutex ) == 0;
     }
 

@@ -145,7 +145,6 @@ int main(int argc, char * argv[])
                     printf("关闭连接\n");
                     users[ sockfd ].close_conn();
                 }
-                users[ sockfd ].process();
 #endif
             } else {}
         }//for
